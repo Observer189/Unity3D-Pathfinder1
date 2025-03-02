@@ -77,7 +77,7 @@ namespace DefaultNamespace
                         resList.Add(cur.position);
                         if (cur.prev == null)
                         {
-                            Debug.Log($"open count = {openCount}");
+                            Debug.Log($"open node count = {openCount}");
                             return new Path<Vector2Int>(resList,cost);
                         }
                         else

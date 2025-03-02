@@ -18,6 +18,8 @@ public class Grid : MonoBehaviour
 
     [SerializeField] private float _obstacleSpawnDelay;
 
+    [SerializeField] private Algo _usingAlgorithm;
+
     //  Номер кадра, на котором будет выполнено обновление путей
     private int updateAtFrame = 0;  
 
@@ -234,7 +236,18 @@ public class Grid : MonoBehaviour
         updateAtFrame = Time.frameCount + 100;
 
         //calculatePath(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
-        //CalculatePathAstar(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
-        CalculatePathDeijcstar(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
+        if (_usingAlgorithm == Algo.Deijcstra)
+        {
+            CalculatePathDeijcstar(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0) - 1, grid.GetLength(1) - 1));
+        }
+        else
+        {
+            CalculatePathAstar(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
+        }
     }
+}
+
+public enum Algo
+{
+    Deijcstra, Astar 
 }

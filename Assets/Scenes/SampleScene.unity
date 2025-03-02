@@ -171,7 +171,8 @@ MonoBehaviour:
   landscape: {fileID: 1012973132}
   gridDelta: 10
   _obstaclePrefab: {fileID: 1048945634}
-  _obstacleSpawnDelay: 1
+  _obstacleSpawnDelay: 10
+  _usingAlgorithm: 0
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
