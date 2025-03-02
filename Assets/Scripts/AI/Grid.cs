@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using DefaultNamespace;
 using UnityEngine;
 
 public class Grid : MonoBehaviour
@@ -13,26 +14,33 @@ public class Grid : MonoBehaviour
     //  Шаг сетки (по x и z) для построения точек
     [SerializeField] private int gridDelta = 20;
 
+    [SerializeField] private GameObject _obstaclePrefab;
+
+    [SerializeField] private float _obstacleSpawnDelay;
+
     //  Номер кадра, на котором будет выполнено обновление путей
     private int updateAtFrame = 0;  
 
     //  Массив узлов - создаётся один раз, при первом вызове скрипта
     private PathNode[,] grid = null;
 
+    private AstarPathfinder _astarPathfinder;
+
+    private DeijcstraPathfinder _deijcstraPathfinder;
     private void CheckWalkableNodes()
     {
         foreach (PathNode node in grid)
         {
             //  Пока что считаем все вершины проходимыми, без учёта препятствий
-            node.walkable = true;
-            /*node.walkable = !Physics.CheckSphere(node.body.transform.position, 1);
+            //node.walkable = true;
+            node.walkable = !Physics.CheckSphere(node.body.transform.position, 1);
             if (node.walkable)
                 node.Fade();
             else
             {
                 node.Illuminate();
-                Debug.Log("Not walkable!");
-            }*/
+                //Debug.Log("Not walkable!");
+            }
         }
     }
 
@@ -55,7 +63,48 @@ public class Grid : MonoBehaviour
                 grid[x, z].ParentNode = null;
                 grid[x, z].Fade();
             }
+
+        Debug.Log($"map size = {grid.GetLength(0)} ,{ grid.GetLength(1)}");
+        _astarPathfinder = new AstarPathfinder();
+        _astarPathfinder.Allocate(new Vector2Int(grid.GetLength(0),grid.GetLength(1)));
+        _astarPathfinder.DiagonalPassingType = DiagonalPassingType.PassAlways;
+        
+        _deijcstraPathfinder = new DeijcstraPathfinder();
+        _deijcstraPathfinder.Allocate(new Vector2Int(grid.GetLength(0),grid.GetLength(1)));
+        _deijcstraPathfinder.DiagonalPassingType = DiagonalPassingType.PassAlways;
+
+        StartCoroutine(SpawnObstacle());
+        //GenerateObstacles();
     }
+
+    private IEnumerator SpawnObstacle()
+    {
+        while (true)
+        {
+            Vector3 terrainSize = landscape.terrainData.bounds.size;
+            Instantiate(_obstaclePrefab,new Vector3(Random.Range(0, terrainSize.x), 150,
+                Random.Range(0, terrainSize.z)),Quaternion.identity);
+            yield return new WaitForSeconds(_obstacleSpawnDelay);
+        }
+    }
+
+    private void GenerateObstacles()
+    {
+        for (int i = 0; i < grid.GetLength(0); i++)
+        {
+            for (int j = 0; j < grid.GetLength(1); j++)
+            {
+                if (i == 0 && j == 0 || i == grid.GetLength(0) - 1 && j == grid.GetLength(1) - 1)
+                {
+                    continue;
+                }
+
+                Instantiate(_obstaclePrefab, grid[i, j].worldPosition, Quaternion.identity);
+                grid[i, j].walkable = false;
+            }
+        }
+    }
+
     /// <summary>
     /// Получение списка соседних узлов для вершины сетки
     /// </summary>
@@ -124,13 +173,68 @@ public class Grid : MonoBehaviour
         }
     }
 
+    void CalculatePathAstar(Vector2Int startNode, Vector2Int finishNode)
+    {
+        foreach (var node in grid)
+        {
+            node.Fade();
+            node.ParentNode = null;
+        }
+        
+        CheckWalkableNodes();
+
+        var path = _astarPathfinder.Pathfind(startNode, finishNode, grid,0,0,-1,-1,false);
+
+        foreach (var node in path.route)
+        {
+            grid[node.x,node.y].Illuminate();
+        }
+    }
+    
+    void CalculatePathDeijcstar(Vector2Int startNode, Vector2Int finishNode)
+    {
+        foreach (var node in grid)
+        {
+            node.Fade();
+            node.ParentNode = null;
+        }
+        
+        CheckWalkableNodes();
+
+        var path = _deijcstraPathfinder.Pathfind(startNode, finishNode, grid,0,0,-1,-1,false);
+
+        foreach (var node in path.route)
+        {
+            grid[node.x,node.y].Illuminate();
+        }
+    }
+
+    public byte[,] PathNodeToGrid()
+    {
+        byte[,] byteGrid = new byte[grid.GetLength(0),grid.GetLength(1)];
+
+        for (int i = 0; i < grid.GetLength(0); i++)
+        {
+            for (int j = 0; j < grid.GetLength(1); j++)
+            {
+                byteGrid[i, j] = (byte)((grid[i, j].walkable) ? 1 : 255);
+            }
+        }
+
+        return byteGrid;
+    }
+
+   
+
     // Метод вызывается каждый кадр
     void Update()
     {
         //  Чтобы не вызывать этот метод каждый кадр, устанавливаем интервал вызова в 1000 кадров
         if (Time.frameCount < updateAtFrame) return;
-        updateAtFrame = Time.frameCount + 1000;
+        updateAtFrame = Time.frameCount + 100;
 
-        calculatePath(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
+        //calculatePath(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
+        //CalculatePathAstar(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
+        CalculatePathDeijcstar(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
     }
 }

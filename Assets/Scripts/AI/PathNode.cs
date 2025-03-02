@@ -86,4 +86,5 @@ public class PathNode //: MonoBehaviour
     {
         body.GetComponent<Renderer>().material.color = Color.blue;
     }
+    
 }
